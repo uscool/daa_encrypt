@@ -1,0 +1,1 @@
+In C++, priority queue is a type of queue in which there is some priority assigned to the elements. According to this priority, elements are removed from the queue. By default, the value of the element being inserted is considered as priority. Higher its value, higher its priority. But this can be changed to any desired priority scheme as per requirement.
