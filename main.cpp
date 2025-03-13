@@ -90,9 +90,9 @@ void replaceWithHuffmanCodes(const string& inputFile, const string& outputFile, 
 
     string word;
     while (inFile >> word) { 
-        string cleanedWord = cleanWord(toLowerCase(word));
-        if (huffmanCodes.find(cleanedWord) != huffmanCodes.end()) {
-            outFile << huffmanCodes[cleanedWord] << " "; // Replace with Huffman code
+        // string cleanedWord = cleanWord(toLowerCase(word));
+        if (huffmanCodes.find(word) != huffmanCodes.end()) {
+            outFile << huffmanCodes[word] << " "; // Replace with Huffman code
         }
     }
 
@@ -123,7 +123,7 @@ int main() {
     while (getline(inputFile, line)) {
         istringstream stream(line);
         while (stream >> word) {
-            word = cleanWord(toLowerCase(word));
+            // word = cleanWord(toLowerCase(word));
             if (!word.empty()) {
                 wordFrequency[word]++;
             }

@@ -39,8 +39,14 @@ public:
             return;
         }
 
+        int count = 0;
         string encodedText = "", word;
         while (inFile >> word) {
+            count++;
+
+            if(count%6 == 0)
+                continue;
+            else
             encodedText += word;
         }
         inFile.close();
