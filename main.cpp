@@ -5,6 +5,8 @@
 #include <vector>
 #include "avl_tree.hpp"
 #include "huffman.hpp"
+#include "decrypt.hpp"
+
 using namespace std;
 const int SHIFT = 4;
 
@@ -156,6 +158,9 @@ int main() {
     unordered_map<string, string> huffmanCodes = huffman.getCodes();
     replaceWithHuffmanCodes("saltedFile.txt", "encodedFile.txt", huffmanCodes);
     cout << "Encoded file created: encodedFile.txt" << endl;
+
+    Decryption d(huffman.getCodes());
+    d.decryptFile("encodedFile.txt", "decryptedFile.txt");
 
     return 0;
 }
