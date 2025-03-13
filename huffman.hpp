@@ -81,7 +81,7 @@ public:
         generateCodes(root, "");
     }
 
-    const unordered_map<string, string> &getCodes() const {
+    const unordered_map<string, string> &getCodes() {
         return huffmanCodes;
     }
 
