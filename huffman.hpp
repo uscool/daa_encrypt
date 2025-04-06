@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <fstream>
 #include "avl_tree.hpp"
 
 using namespace std;
@@ -89,6 +90,34 @@ public:
         for (const auto &pair : huffmanCodes) {
             cout << pair.first << ": " << pair.second << endl;
         }
+    }
+
+    void saveHuffmanCodes(const unordered_map<string, string>& codes, const string& filePath) {
+        ofstream out(filePath);
+        if (!out) {
+            cerr << "Failed to save Huffman codes to file!\n";
+            return;
+        }
+        for (const auto& pair : codes) {
+            out << pair.first << " " << pair.second << "\n";
+        }
+        out.close();
+    }
+
+    unordered_map<string, string> loadHuffmanCodes(const string &filename) {
+        unordered_map<string, string> codes;
+        ifstream file(filename);
+        if (!file) return codes;
+    
+        string word, code;
+        while (file >> word >> code) {
+            codes[word] = code;
+        }
+        for (auto& pair : codes) {
+            cout << pair.first << ": " << pair.second << endl;
+        }
+        cout << endl;
+        return codes;
     }
 };
 
