@@ -122,8 +122,8 @@ void replaceWithHuffmanCodes(const string &inputFile, const string &outputFile, 
 int main()
 {
     int choice;
-
     HuffmanCoding huffman;
+
     do
     {
         cout << "\n=== Secure Text Processor ===\n";
@@ -149,9 +149,14 @@ int main()
             }
             check.close();
 
-            insertSaltedWords(filename, "saltedFile.txt");
+            string baseName = filename.substr(0, filename.find_last_of('.'));
+            string huffFileName = "huffman_codes_" + baseName + ".txt";
+            string saltedFile = "salted_" + baseName + ".txt";
+            string encodedFile = "encoded_" + baseName + ".txt";
 
-            ifstream inputFile("saltedFile.txt");
+            insertSaltedWords(filename, saltedFile);
+
+            ifstream inputFile(saltedFile);
             unordered_map<string, int> wordFrequency;
             string word, line;
 
@@ -174,30 +179,37 @@ int main()
             huffman.buildFromAVL(avlTree);
             unordered_map<string, string> huffmanCodes = huffman.getCodes();
 
-            huffman.saveHuffmanCodes(huffmanCodes, "huffman_codes.txt");
+            huffman.saveHuffmanCodes(huffmanCodes, huffFileName);  // Save with custom name
 
-            replaceWithHuffmanCodes("saltedFile.txt", "encodedFile.txt", huffmanCodes);
-            cout << "✅ Encryption complete. Output: encodedFile.txt\n";
+            replaceWithHuffmanCodes(saltedFile, encodedFile, huffmanCodes);
+            cout << "Encryption complete. Output: " << encodedFile << "\n";
         }
         else if (choice == 2)
         {
-            string fileName;
-            cout << "Enter output filename for decrypted text: ";
-            cin >> fileName;
+            string encodedFile;
+            cout << "Enter encoded filename to decrypt: ";
+            cin >> encodedFile;
 
-            HuffmanCoding huffman; // ✅ Create HuffmanCoding object
-            unordered_map<string, string> huffmanCodes = huffman.loadHuffmanCodes("huffman_codes.txt"); // ✅ Call member function
+            string baseName = encodedFile;
+            if (baseName.rfind("encoded_", 0) == 0)
+                baseName = baseName.substr(8);
+            baseName = baseName.substr(0, baseName.find_last_of('.'));
+
+            string huffFileName = "huffman_codes_" + baseName + ".txt";
+
+            unordered_map<string, string> huffmanCodes = huffman.loadHuffmanCodes(huffFileName);
 
             if (huffmanCodes.empty())
             {
-                cerr << "Decryption aborted: Huffman codes not found.\n";
+                cerr << "Decryption aborted: Huffman codes not found in " << huffFileName << "\n";
                 continue;
             }
 
             huffman.printCodes();
+
             Decryption d(huffmanCodes);
-            d.decryptFile(fileName, "decryptedFile.txt"); // ✅ Decrypt!
-            cout << "Decryption complete. Output: decryptedFile.txt" << "\n";
+            d.decryptFile(encodedFile, "decrypted_" + baseName + ".txt");  // Save output
+            cout << "Decryption complete. Output: decrypted_" << baseName << ".txt\n";
         }
         else if (choice == 3)
         {
@@ -213,3 +225,4 @@ int main()
     cout << "Goodbye!\n";
     return 0;
 }
+

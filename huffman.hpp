@@ -119,6 +119,15 @@ public:
         cout << endl;
         return codes;
     }
+
+    string getHuffmanCodeFileName(const string& originalFileName) {
+        size_t pos = originalFileName.find(".txt");
+        if (pos != string::npos) {
+            return originalFileName.substr(0, pos) + "_huffman_code.txt";
+        }
+        return originalFileName + "_huffman_code.txt"; // fallback
+    }
+    
 };
 
 #endif
