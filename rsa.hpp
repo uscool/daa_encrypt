@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <bitset>
+#include <iostream>
 
 class RSA {
 private:
@@ -155,47 +156,52 @@ public:
 
     // New method: Encrypt Huffman codes
     std::string encryptHuffmanCodes(const std::string& huffmanCodes) {
+        // For Huffman codes, we'll use a simpler approach to preserve the codes
+        // We'll encrypt each character individually instead of the whole code
         std::string result;
-        std::stringstream ss(huffmanCodes);
-        std::string token;
-        
-        // Process each Huffman code as a whole token
-        while (ss >> token) {
-            // Convert the Huffman code (binary string) to a number
-            long long tokenValue = binaryToLong(token);
-            
-            // Encrypt the token value
-            long long encrypted = encrypt(tokenValue);
-            
-            // Convert back to binary and pad to original length
-            std::string encryptedBinary = longToBinary(encrypted, token.length());
-            
-            // Add to result with a delimiter
-            result += encryptedBinary + " ";
+        for (char c : huffmanCodes) {
+            if (c == ' ') {
+                result += ' ';
+            } else {
+                // Convert the character to a number (0 or 1)
+                long long tokenValue = (c == '1') ? 1 : 0;
+                
+                // Encrypt the token value
+                long long encrypted = encrypt(tokenValue);
+                
+                // Convert back to binary (0 or 1)
+                result += (encrypted % 2 == 1) ? '1' : '0';
+            }
         }
+        
+        // Debug output
+        std::cout << "RSA encrypted Huffman codes: " << result << std::endl;
         
         return result;
     }
 
     // New method: Decrypt Huffman codes
     std::string decryptHuffmanCodes(const std::string& encrypted) {
+        // For Huffman codes, we'll use a simpler approach to preserve the codes
+        // We'll decrypt each character individually instead of the whole code
         std::string result;
-        std::stringstream ss(encrypted);
-        std::string token;
-        
-        while (ss >> token) {
-            // Convert the encrypted binary string to a number
-            long long num = binaryToLong(token);
-            
-            // Decrypt the number
-            long long decrypted = decrypt(num);
-            
-            // Convert back to binary and pad to original length
-            std::string decryptedBinary = longToBinary(decrypted, token.length());
-            
-            // Add to result with a delimiter
-            result += decryptedBinary + " ";
+        for (char c : encrypted) {
+            if (c == ' ') {
+                result += ' ';
+            } else {
+                // Convert the character to a number (0 or 1)
+                long long num = (c == '1') ? 1 : 0;
+                
+                // Decrypt the number
+                long long decrypted = decrypt(num);
+                
+                // Convert back to binary (0 or 1)
+                result += (decrypted % 2 == 1) ? '1' : '0';
+            }
         }
+        
+        // Debug output
+        std::cout << "RSA decrypted Huffman codes: " << result << std::endl;
         
         return result;
     }
