@@ -128,16 +128,36 @@ void replaceWithHuffmanCodes(const string& inputFile, const string& outputFile, 
         return;
     }
 
+    // Read all words into a vector to preserve order
+    vector<string> words;
     string word;
-    while (inFile >> word) { 
-        // string cleanedWord = cleanWord(toLowerCase(word));
+    while (inFile >> word) {
+        words.push_back(word);
+    }
+    inFile.close();
+
+    // Process words in order
+    bool firstWord = true;
+    for (const string& word : words) {
         if (huffmanCodes.find(word) != huffmanCodes.end()) {
-            outFile << huffmanCodes[word] << " "; // Replace with Huffman code
+            if (!firstWord) {
+                outFile << " ";  // Add space between words
+            }
+            outFile << huffmanCodes[word]; // Replace with Huffman code
+            firstWord = false;
         }
     }
 
-    inFile.close();
     outFile.close();
+    
+    // Debug output
+    cout << "Huffman encoded words: ";
+    for (const string& word : words) {
+        if (huffmanCodes.find(word) != huffmanCodes.end()) {
+            cout << huffmanCodes[word] << " ";
+        }
+    }
+    cout << endl;
 }
 
 void huffmanCaesarEncryptFile(const string& filename) {
@@ -350,6 +370,9 @@ void combinedEncryptFile(const string& filename) {
                          istreambuf_iterator<char>());
     huffmanFile.close();
 
+    // Debug output
+    cout << "Huffman content before RSA: " << huffmanContent << endl;
+
     // Use the new RSA method for Huffman codes
     string rsaEncrypted = rsa.encryptHuffmanCodes(huffmanContent);
     ofstream rsaFile("rsa_encoded.txt");
@@ -407,6 +430,7 @@ void combinedDecryptFile() {
     }
 
     cout << "Caesar decrypted length: " << caesarDecrypted.length() << endl;
+    cout << "Caesar decrypted content: " << caesarDecrypted << endl;
 
     ofstream caesarFile("caesar_decrypted.txt");
     caesarFile << caesarDecrypted;
@@ -418,6 +442,7 @@ void combinedDecryptFile() {
     // Use the new RSA method for Huffman codes
     string rsaDecrypted = rsa.decryptHuffmanCodes(caesarDecrypted);
     cout << "RSA decrypted length: " << rsaDecrypted.length() << endl;
+    cout << "RSA decrypted content: " << rsaDecrypted << endl;
 
     // Write the RSA decrypted content to a file
     ofstream rsaFile("rsa_decrypted.txt");
