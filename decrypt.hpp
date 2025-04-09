@@ -100,17 +100,18 @@ public:
             // Skip every 5th word (salt)
             if ((i + 1) % 6 != 0) {
                 encodedText += words[i];
+                // Add space if not the last word and next word is not a salt word
                 if (i < words.size() - 1 && (i + 2) % 5 != 0) {
-                    encodedText += " "; // Add space between non-salt words
+                    encodedText += " ";
                 }
             }
         }
 
         // Debug output
-        cout << "Encoded text before decoding: " << encodedText << endl;
+        //cout << "Encoded text before decoding: " << encodedText << endl;
 
         // Print each word separately for debugging
-        cout << "Words before decoding: ";
+        //cout << "Words before decoding: ";
         stringstream ss(encodedText);
         string token;
         while (ss >> token) {
@@ -118,8 +119,9 @@ public:
         }
         cout << endl;
 
-        string decryptedText = decode(encodedText);
-        outFile << decryptedText;
+        // Process the content
+        string decodedText = decode(encodedText);
+        outFile << decodedText;
         outFile.close();
         cout << "Decryption completed. Output saved to " << outputFile << endl;
     }
