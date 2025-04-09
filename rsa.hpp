@@ -175,7 +175,7 @@ public:
         }
         
         // Debug output
-        std::cout << "RSA encrypted Huffman codes: " << result << std::endl;
+        //std::cout << "RSA encrypted Huffman codes: " << result << std::endl;
         
         return result;
     }
@@ -201,7 +201,7 @@ public:
         }
         
         // Debug output
-        std::cout << "RSA decrypted Huffman codes: " << result << std::endl;
+        //std::cout << "RSA decrypted Huffman codes: " << result << std::endl;
         
         return result;
     }
