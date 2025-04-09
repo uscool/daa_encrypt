@@ -198,8 +198,8 @@ void huffmanCaesarEncryptFile(const string& filename) {
     HuffmanCoding huffman;
     huffman.buildFromAVL(avlTree);
 
-    cout << "\nHuffman codes for each word:\n";
-    huffman.printCodes();
+    //cout << "\nHuffman codes for each word:\n";
+    //huffman.printCodes();
 
     // Store Huffman codes globally
     globalHuffmanCodes = huffman.getCodes();
@@ -371,7 +371,7 @@ void combinedEncryptFile(const string& filename) {
     huffmanFile.close();
 
     // Debug output
-    cout << "Huffman content before RSA: " << huffmanContent << endl;
+    //cout << "Huffman content before RSA: " << huffmanContent << endl;
 
     // Use the new RSA method for Huffman codes
     string rsaEncrypted = rsa.encryptHuffmanCodes(huffmanContent);
@@ -413,8 +413,8 @@ void combinedDecryptFile() {
                           istreambuf_iterator<char>());
     inFile.close();
 
-    cout << "Step 1: Caesar Decryption" << endl;
-    cout << "Input length: " << encryptedContent.length() << endl;
+    //cout << "Step 1: Caesar Decryption" << endl;
+    //cout << "Input length: " << encryptedContent.length() << endl;
 
     // Reverse Caesar cipher (shift by -SHIFT)
     string caesarDecrypted;
@@ -438,11 +438,11 @@ void combinedDecryptFile() {
     fileStack.push("caesar_decrypted.txt");
 
     // Step 2: Reverse RSA
-    cout << "\nStep 2: RSA Decryption" << endl;
+    //cout << "\nStep 2: RSA Decryption" << endl;
     // Use the new RSA method for Huffman codes
     string rsaDecrypted = rsa.decryptHuffmanCodes(caesarDecrypted);
-    cout << "RSA decrypted length: " << rsaDecrypted.length() << endl;
-    cout << "RSA decrypted content: " << rsaDecrypted << endl;
+    //cout << "RSA decrypted length: " << rsaDecrypted.length() << endl;
+    //cout << "RSA decrypted content: " << rsaDecrypted << endl;
 
     // Write the RSA decrypted content to a file
     ofstream rsaFile("rsa_decrypted.txt");
@@ -451,7 +451,7 @@ void combinedDecryptFile() {
     fileStack.push("rsa_decrypted.txt");
 
     // Step 3: Reverse Huffman
-    cout << "\nStep 3: Huffman Decryption" << endl;
+    //cout << "\nStep 3: Huffman Decryption" << endl;
     Decryption d(globalHuffmanCodes);
     d.decryptFile("rsa_decrypted.txt", "combined_decrypted.txt");
     fileStack.push("combined_decrypted.txt");
@@ -462,12 +462,12 @@ void combinedDecryptFile() {
                        istreambuf_iterator<char>());
     finalCheck.close();
     
-    cout << "Final decrypted file length: " << finalContent.length() << endl;
-    if (finalContent.empty()) {
-        cout << "Warning: Final decrypted file is empty!" << endl;
-    } else {
-        cout << "First 100 characters of decrypted content: " << finalContent.substr(0, 100) << endl;
-    }
+    //cout << "Final decrypted file length: " << finalContent.length() << endl;
+    //if (finalContent.empty()) {
+    //    cout << "Warning: Final decrypted file is empty!" << endl;
+    //} else {
+    //    cout << "First 100 characters of decrypted content: " << finalContent.substr(0, 100) << endl;
+    //}
     
     cout << "Combined decryption completed. Output saved to: combined_decrypted.txt" << endl;
 }
