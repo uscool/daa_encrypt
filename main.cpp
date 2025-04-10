@@ -11,22 +11,25 @@
 using namespace std;
 const int SHIFT = 4;
 
-// Add this at the top with other global variables
+// Global instances
 unordered_map<string, string> globalHuffmanCodes;
-RSA rsa; // Global RSA instance
+RSA globalRSA;  // Global RSA instance
 
-// Stack implementation using vector
-class Stack {
+class Stack
+{
 private:
     vector<string> data;
 
 public:
-    void push(const string& item) {
+    void push(const string &item)
+    {
         data.push_back(item);
     }
 
-    string pop() {
-        if (data.empty()) {
+    string pop()
+    {
+        if (data.empty())
+        {
             throw runtime_error("Stack is empty");
         }
         string item = data.back();
@@ -34,89 +37,44 @@ public:
         return item;
     }
 
-    bool isEmpty() const {
+    bool isEmpty() const
+    {
         return data.empty();
     }
 
-    size_t size() const {
+    size_t size() const
+    {
         return data.size();
     }
 
-    void clear() {
+    void clear()
+    {
         data.clear();
     }
 };
-
-// Global stack for file operations
 Stack fileStack;
 
-// Convert string to lowercase
-string toLowerCase(const string &s) {
-    string result = s;
-    for (char &c : result) {
-        c = tolower(c);
-    }
-    return result;
+void displayMenu()
+{
+    cout << "\n=== File Encryption/Decryption Menu ===" << endl;
+    cout << "1. Encrypt File" << endl;
+    cout << "2. Decrypt File" << endl;
+    cout << "3. Exit" << endl;
+    cout << "Enter your choice (1-3): ";
 }
-
-// Clean word by removing punctuation
-string cleanWord(const string &word) {
-    string result;
-    for (char c : word) {
-        if (isalnum(c)) {
-            result += c;
-        }
-    }
-    return result;
+void displayEncryptionOptions()
+{
+    cout << "\n=== Encryption Options ===" << endl;
+    cout << "1. Combined Encryption (Huffman + RSA + Caesar)" << endl;
+    cout << "2. Huffman + Caesar Encryption" << endl;
+    cout << "Enter your choice (1-2): ";
 }
-
-string generateSalt() {
-    const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    string salt = "";
-    for (int i = 0; i < ((rand() % 10) + 3); ++i) { 
-        salt += chars[rand() % chars.length()];
-    }
-    return salt;
-}
-
-void insertSaltedWords(const string& inputFile, const string& outputFile) {
-    ifstream inFile(inputFile);
-    ofstream outFile(outputFile);
-
-    if (!inFile || !outFile) {
-        cerr << "Error opening file!" << endl;
-        return;
-    }
-
-    string word;
-    int count = 0;
-
-    srand(10010292); // Seed for random dummy word generation
-
-    while (inFile >> word) {
-        count++;
-        outFile << word << " ";
-        if (count % 5 == 0) {
-            outFile << generateSalt() << " ";
-        }
-    }
-    inFile.close();
-    outFile.close();
-}
-
-string caesarEncrypt(const string& text, int shift) {
-    string encryptedText;
-    for (char ch : text) {
-        if (ch >= 'a' && ch <= 'z') 
-            encryptedText += 'a' + (ch - 'a' + shift) % 26;
-        else if (ch >= 'A' && ch <= 'Z') 
-            encryptedText += 'A' + (ch - 'A' + shift) % 26;
-        else if (ch >= '0' && ch <= '9') 
-            encryptedText += '0' + (ch - '0' + shift) % 10;
-        else 
-            encryptedText += ch; // Keep other characters unchanged
-    }
-    return encryptedText;
+void displayDecryptionOptions()
+{
+    cout << "\n=== Decryption Options ===" << endl;
+    cout << "1. Combined Decryption (Caesar + RSA + Huffman)" << endl;
+    cout << "2. Caesar + Huffman Decryption" << endl;
+    cout << "Enter your choice (1-2): ";
 }
 
 void replaceWithHuffmanCodes(const string& inputFile, const string& outputFile, unordered_map<string, string>& huffmanCodes) {
@@ -128,423 +86,272 @@ void replaceWithHuffmanCodes(const string& inputFile, const string& outputFile, 
         return;
     }
 
-    // Read all words into a vector to preserve order
-    vector<string> words;
-    string word;
-    while (inFile >> word) {
-        words.push_back(word);
-    }
+    // Read the entire content
+    string content((istreambuf_iterator<char>(inFile)),
+                  istreambuf_iterator<char>());
     inFile.close();
 
-    // Process words in order
+    // Process content character by character
     bool firstWord = true;
-    for (const string& word : words) {
-        if (huffmanCodes.find(word) != huffmanCodes.end()) {
-            if (!firstWord) {
-                outFile << " ";  // Add space between words
+    string currentToken;
+    bool inBrackets = false;
+    
+    for (char c : content) {
+        if (c == '[') {
+            inBrackets = true;
+            currentToken.clear();
+        }
+        else if (c == ']') {
+            inBrackets = false;
+            if (!currentToken.empty()) {
+                if (!firstWord) {
+                    outFile << " ";
+                }
+                // Remove any leading/trailing spaces from the token
+                size_t start = currentToken.find_first_not_of(" ");
+                size_t end = currentToken.find_last_not_of(" ");
+                if (start != string::npos && end != string::npos) {
+                    string trimmedToken = currentToken.substr(start, end - start + 1);
+                    // Check if this token has a Huffman code
+                    if (huffmanCodes.find(trimmedToken) != huffmanCodes.end()) {
+                        outFile << huffmanCodes[trimmedToken];
+                    } else {
+                        outFile << trimmedToken;
+                    }
+                }
+                firstWord = false;
             }
-            outFile << huffmanCodes[word]; // Replace with Huffman code
+        }
+        else if (inBrackets) {
+            currentToken += c;
+        }
+        else if (c == ' ') {
+            if (!firstWord) {
+                outFile << " ";
+            }
+            outFile << " ";
             firstWord = false;
         }
     }
 
     outFile.close();
-    
-    // Debug output
-    cout << "Huffman encoded words: ";
-    for (const string& word : words) {
-        if (huffmanCodes.find(word) != huffmanCodes.end()) {
-            cout << huffmanCodes[word] << " ";
-        }
-    }
-    cout << endl;
 }
 
-void huffmanCaesarEncryptFile(const string& filename) {
-    ifstream ogFile(filename);
-    if (!ogFile.is_open()) {
-        cerr << "Error opening file: " << filename << endl;
-        return;
-    }
-
-    // Push original filename to stack
-    fileStack.push(filename);
-
-    // Salting
-    insertSaltedWords(filename, "saltedFile.txt");
-    fileStack.push("saltedFile.txt");
+void printHuffmanCodes() {
+    cout << "\n=== Current Huffman Codes Hashmap ===" << endl;
+    cout << "Total number of codes: " << globalHuffmanCodes.size() << endl;
+    cout << "----------------------------------------" << endl;
     
-    ogFile.close();
-    ifstream inputFile("saltedFile.txt");
-
-    unordered_map<string, int> wordFrequency;
-    string line, word;
-
-    while (getline(inputFile, line)) {
-        istringstream stream(line);
-        while (stream >> word) {
-            if (!word.empty()) {
-                wordFrequency[word]++;
-            }
-        }
-    }
-    inputFile.close();
-
-    AVLTree avlTree;
-    for (const auto &pair : wordFrequency) {
-        avlTree.insert(pair.first, pair.second);
-    }
-
-    HuffmanCoding huffman;
-    huffman.buildFromAVL(avlTree);
-
-    //cout << "\nHuffman codes for each word:\n";
-    //huffman.printCodes();
-
-    // Store Huffman codes globally
-    globalHuffmanCodes = huffman.getCodes();
-
-    // Caesar cipher 
-    unordered_map<string, string> encryptedWordFrequency;
-
-    for (const auto& pair : wordFrequency) {
-        string encryptedKey = caesarEncrypt(pair.first, SHIFT);
-        encryptedWordFrequency[encryptedKey] = pair.second;
-    }
-
-    cout << "Encrypted Word Frequency:" << endl;
-    for (const auto &pair : encryptedWordFrequency) {
-        cout << pair.first << ": " << pair.second << endl;
-    }
-
-    replaceWithHuffmanCodes("saltedFile.txt", "encodedFile.txt", globalHuffmanCodes);
-    fileStack.push("encodedFile.txt");
-    cout << "Encoded file created: encodedFile.txt" << endl;
-}
-
-void huffmanCaesarDecryptFile() {
     if (globalHuffmanCodes.empty()) {
-        cout << "Error: No encryption has been performed yet. Please encrypt a file first." << endl;
-        return;
-    }
-
-    if (fileStack.size() < 2) {
-        cout << "Error: No files available for decryption." << endl;
-        return;
-    }
-
-    // Get the encoded file from stack
-    string encodedFile = fileStack.pop();
-    string outputFile = "decryptedFile.txt";
-    
-    cout << "Starting Huffman decryption..." << endl;
-    cout << "Input file: " << encodedFile << endl;
-    
-    Decryption d(globalHuffmanCodes);
-    d.decryptFile(encodedFile, outputFile);
-    fileStack.push(outputFile);
-    
-    // Verify the decrypted file exists and has content
-    ifstream finalCheck(outputFile);
-    string finalContent((istreambuf_iterator<char>(finalCheck)),
-                       istreambuf_iterator<char>());
-    finalCheck.close();
-    
-    cout << "Decrypted file length: " << finalContent.length() << endl;
-    if (finalContent.empty()) {
-        cout << "Warning: Decrypted file is empty!" << endl;
+        cout << "Hashmap is empty!" << endl;
     } else {
-        cout << "First 100 characters of decrypted content: " << finalContent.substr(0, 100) << endl;
-    }
-    
-    cout << "File decrypted successfully. Output saved to: " << outputFile << endl;
-}
-
-void rsaEncryptFile(const string& filename) {
-    ifstream inFile(filename);
-    if (!inFile.is_open()) {
-        cerr << "Error opening file: " << filename << endl;
-        return;
-    }
-
-    string content((istreambuf_iterator<char>(inFile)),
-                   istreambuf_iterator<char>());
-    inFile.close();
-
-    // Encrypt the content using RSA
-    string encryptedContent = rsa.encryptString(content);
-
-    // Save the encrypted content
-    string outputFile = "rsa_encrypted.txt";
-    ofstream outFile(outputFile);
-    outFile << encryptedContent;
-    outFile.close();
-
-    fileStack.push(outputFile);
-    cout << "RSA encrypted file created: " << outputFile << endl;
-}
-
-void rsaDecryptFile() {
-    if (fileStack.isEmpty()) {
-        cout << "Error: No files available for decryption." << endl;
-        return;
-    }
-
-    string inputFile = fileStack.pop();
-    ifstream inFile(inputFile);
-    if (!inFile.is_open()) {
-        cerr << "Error opening file: " << inputFile << endl;
-        return;
-    }
-
-    string encryptedContent((istreambuf_iterator<char>(inFile)),
-                          istreambuf_iterator<char>());
-    inFile.close();
-
-    // Decrypt the content using RSA
-    string decryptedContent = rsa.decryptString(encryptedContent);
-
-    // Save the decrypted content
-    string outputFile = "rsa_decrypted.txt";
-    ofstream outFile(outputFile);
-    outFile << decryptedContent;
-    outFile.close();
-
-    fileStack.push(outputFile);
-    cout << "RSA decrypted file created: " << outputFile << endl;
-}
-
-void combinedEncryptFile(const string& filename) {
-    ifstream ogFile(filename);
-    if (!ogFile.is_open()) {
-        cerr << "Error opening file: " << filename << endl;
-        return;
-    }
-
-    // Push original filename to stack
-    fileStack.push(filename);
-
-    // Step 1: Salting
-    insertSaltedWords(filename, "saltedFile.txt");
-    fileStack.push("saltedFile.txt");
-    
-    ogFile.close();
-    ifstream inputFile("saltedFile.txt");
-
-    // Step 2: Build frequency map and Huffman codes
-    unordered_map<string, int> wordFrequency;
-    string line, word;
-
-    while (getline(inputFile, line)) {
-        istringstream stream(line);
-        while (stream >> word) {
-            if (!word.empty()) {
-                wordFrequency[word]++;
-            }
+        for (const auto& pair : globalHuffmanCodes) {
+            cout << "Token: '" << pair.first << "' -> Code: " << pair.second << endl;
         }
     }
-    inputFile.close();
+    cout << "========================================" << endl;
+}
 
+void saveHuffmanCodesToFile(const unordered_map<string, string>& codes, const string& filename = "huffman_hashmap.txt") {
+    ofstream file(filename);
+    if (!file) {
+        cerr << "Error saving Huffman codes!" << endl;
+        return;
+    }
+    
+    for (const auto& pair : codes) {
+        // Save in format: token:code
+        file << pair.first << ":" << pair.second << endl;
+    }
+    file.close();
+    cout << "Huffman codes saved to " << filename << endl;
+}
+
+void loadHuffmanCodesFromFile(unordered_map<string, string>& codes, const string& filename = "huffman_hashmap.txt") {
+    ifstream file(filename);
+    if (!file) {
+        cerr << "Error: huffman_hashmap.txt not found. Please encrypt a file first." << endl;
+        return;
+    }
+    
+    codes.clear();
+    string line;
+    while (getline(file, line)) {
+        size_t colon_pos = line.find(':');
+        if (colon_pos != string::npos) {
+            string token = line.substr(0, colon_pos);
+            string code = line.substr(colon_pos + 1);
+            codes[token] = code;
+        }
+    }
+    file.close();
+    cout << "Huffman codes loaded from " << filename << endl;
+}
+
+void combinedEncryptFile(const string &filename)
+{
+    cout << "\n=== Starting Encryption Process ===" << endl;
+
+    // Initialize RSA keys if not already initialized
+    globalRSA.initializeKeys();
+
+    // Step 1: Read the input file
+    ifstream inputFile(filename);
+    if (!inputFile)
+    {
+        cerr << "Error opening input file!" << endl;
+        return;
+    }
+
+    // Step 2: Split content into words and apply RSA to each word
+
+    string curr_word;
+    vector<string> words;
+    while (inputFile >> curr_word)
+    {
+        words.push_back(globalRSA.encryptString(curr_word));
+    }
+
+    // Step 3: Build frequency map
+    unordered_map<string, int> frequencyMap;
+    for (const string &word : words)
+    {
+        frequencyMap[word]++; // Include spaces in frequency map
+    }
+
+    // Step 4: Generate Huffman codes
     AVLTree avlTree;
-    for (const auto &pair : wordFrequency) {
+    for (const auto &pair : frequencyMap)
+    {
         avlTree.insert(pair.first, pair.second);
     }
 
     HuffmanCoding huffman;
     huffman.buildFromAVL(avlTree);
-
-    cout << "\nHuffman codes for each word:\n";
-    huffman.printCodes();
-
-    // Store Huffman codes globally
     globalHuffmanCodes = huffman.getCodes();
 
-    // Step 3: Apply Huffman encoding
-    replaceWithHuffmanCodes("saltedFile.txt", "huffman_encoded.txt", globalHuffmanCodes);
-    fileStack.push("huffman_encoded.txt");
-    cout << "Huffman encoded file created: huffman_encoded.txt" << endl;
+    // Save Huffman codes to file
+    saveHuffmanCodesToFile(globalHuffmanCodes);
 
-    // Step 4: Apply RSA encryption
-    ifstream huffmanFile("huffman_encoded.txt");
-    string huffmanContent((istreambuf_iterator<char>(huffmanFile)),
-                         istreambuf_iterator<char>());
-    huffmanFile.close();
+    // Print all Huffman codes
+    printHuffmanCodes();
 
-    // Debug output
-    //cout << "Huffman content before RSA: " << huffmanContent << endl;
-
-    // Use the new RSA method for Huffman codes
-    string rsaEncrypted = rsa.encryptHuffmanCodes(huffmanContent);
+    // Step 5: Write RSA encrypted words to file
     ofstream rsaFile("rsa_encoded.txt");
-    rsaFile << rsaEncrypted;
+    for (size_t i = 0; i < words.size(); ++i)
+    {
+        rsaFile << "[";
+        rsaFile << words[i];
+        if (i != words.size() - 1)
+        {
+            rsaFile << " ";
+        }
+        rsaFile << "]";
+    }
+
     rsaFile.close();
     fileStack.push("rsa_encoded.txt");
-    cout << "RSA encrypted file created: rsa_encoded.txt" << endl;
 
-    // Step 5: Apply Caesar cipher
-    ifstream rsaEncryptedFile("rsa_encoded.txt");
-    string rsaContent((istreambuf_iterator<char>(rsaEncryptedFile)),
-                     istreambuf_iterator<char>());
-    rsaEncryptedFile.close();
+    // Step 6: Apply Huffman encoding
+    replaceWithHuffmanCodes("rsa_encoded.txt", "huffman_encoded.txt", globalHuffmanCodes);
+    fileStack.push("huffman_encoded.txt");
 
-    string caesarEncrypted = caesarEncrypt(rsaContent, SHIFT);
+    // Step 7: Apply Caesar cipher
+    ifstream huffmanFile("huffman_encoded.txt");
+    string huffmanContent((istreambuf_iterator<char>(huffmanFile)),
+                          istreambuf_iterator<char>());
+    huffmanFile.close();
+
+    string caesarEncrypted;
+    for (char c : huffmanContent)
+    {
+        if (isdigit(c))
+        {
+            int digit = c - '0';
+            digit = (digit + 4) % 10;
+            caesarEncrypted += to_string(digit);
+        }
+        else
+        {
+            caesarEncrypted += c;
+        }
+    }
+
     ofstream finalFile("combined_encrypted.txt");
     finalFile << caesarEncrypted;
     finalFile.close();
     fileStack.push("combined_encrypted.txt");
-    cout << "Combined encrypted file created: combined_encrypted.txt" << endl;
+    cout << "Stored in encrypted file named 'combined_encrypted.txt'" << endl;
 }
 
-void combinedDecryptFile() {
-    if (globalHuffmanCodes.empty()) {
-        cout << "Error: No encryption has been performed yet. Please encrypt a file first." << endl;
-        return;
+void decryption_process(){
+    cout << "\n=== Starting Decryption Process ===" << endl;
+    
+    // Load Huffman codes from file
+    loadHuffmanCodesFromFile(globalHuffmanCodes);
+    
+    // Print loaded codes for verification
+    cout << "\n=== Loaded Huffman Codes ===" << endl;
+    for (const auto& pair : globalHuffmanCodes) {
+        cout << "Token: '" << pair.first << "' -> Code: " << pair.second << endl;
     }
-
-    if (fileStack.size() < 4) {
-        cout << "Error: No files available for decryption." << endl;
-        return;
-    }
-
+    cout << "===========================" << endl;
+    
+    // Create decryptor instance (it will use the global RSA instance)
+    Decryptor decryptor;
+    
     // Step 1: Reverse Caesar cipher
-    string encryptedFile = fileStack.pop();
-    ifstream inFile(encryptedFile);
-    string encryptedContent((istreambuf_iterator<char>(inFile)),
-                          istreambuf_iterator<char>());
-    inFile.close();
-
-    //cout << "Step 1: Caesar Decryption" << endl;
-    //cout << "Input length: " << encryptedContent.length() << endl;
-
-    // Reverse Caesar cipher (shift by -SHIFT)
-    string caesarDecrypted;
-    for (char ch : encryptedContent) {
-        if (ch >= 'a' && ch <= 'z') 
-            caesarDecrypted += 'a' + (ch - 'a' - SHIFT + 26) % 26;
-        else if (ch >= 'A' && ch <= 'Z') 
-            caesarDecrypted += 'A' + (ch - 'A' - SHIFT + 26) % 26;
-        else if (ch >= '0' && ch <= '9') 
-            caesarDecrypted += '0' + (ch - '0' - SHIFT + 10) % 10;
-        else 
-            caesarDecrypted += ch;
-    }
-
-    cout << "Caesar decrypted length: " << caesarDecrypted.length() << endl;
-    cout << "Caesar decrypted content: " << caesarDecrypted << endl;
-
-    ofstream caesarFile("caesar_decrypted.txt");
-    caesarFile << caesarDecrypted;
-    caesarFile.close();
-    fileStack.push("caesar_decrypted.txt");
-
-    // Step 2: Reverse RSA
-    //cout << "\nStep 2: RSA Decryption" << endl;
-    // Use the new RSA method for Huffman codes
-    string rsaDecrypted = rsa.decryptHuffmanCodes(caesarDecrypted);
-    //cout << "RSA decrypted length: " << rsaDecrypted.length() << endl;
-    //cout << "RSA decrypted content: " << rsaDecrypted << endl;
-
-    // Write the RSA decrypted content to a file
-    ofstream rsaFile("rsa_decrypted.txt");
-    rsaFile << rsaDecrypted;
-    rsaFile.close();
-    fileStack.push("rsa_decrypted.txt");
-
-    // Step 3: Reverse Huffman
-    //cout << "\nStep 3: Huffman Decryption" << endl;
-    Decryption d(globalHuffmanCodes);
-    d.decryptFile("rsa_decrypted.txt", "combined_decrypted.txt");
-    fileStack.push("combined_decrypted.txt");
+    cout << "\n=== Step 1: Reversing Caesar Cipher ===" << endl;
+    decryptor.reverseCaesarToFile();
     
-    // Verify the decrypted file exists and has content
-    ifstream finalCheck("combined_decrypted.txt");
-    string finalContent((istreambuf_iterator<char>(finalCheck)),
-                       istreambuf_iterator<char>());
-    finalCheck.close();
+    // Step 2: Decode Huffman codes
+    cout << "\n=== Step 2: Decoding Huffman Codes ===" << endl;
+    decryptor.decodeHuffmanToFile(globalHuffmanCodes);
     
-    //cout << "Final decrypted file length: " << finalContent.length() << endl;
-    //if (finalContent.empty()) {
-    //    cout << "Warning: Final decrypted file is empty!" << endl;
-    //} else {
-    //    cout << "First 100 characters of decrypted content: " << finalContent.substr(0, 100) << endl;
-    //}
+    // Step 3: Reverse RSA encryption
+    cout << "\n=== Step 3: Reversing RSA Encryption ===" << endl;
+    decryptor.reverseRSAToFile();
     
-    cout << "Combined decryption completed. Output saved to: combined_decrypted.txt" << endl;
+    cout << "\n=== Decryption Process Complete ===" << endl;
+    cout << "Final decrypted output saved to: decrypted_output.txt" << endl;
 }
 
-void displayMenu() {
-    cout << "\n=== File Encryption/Decryption Menu ===" << endl;
-    cout << "1. Encrypt File" << endl;
-    cout << "2. Decrypt File" << endl;
-    cout << "3. Exit" << endl;
-    cout << "Enter your choice (1-3): ";
-}
-
-void displayEncryptionOptions() {
-    cout << "\n=== Encryption Options ===" << endl;
-    cout << "1. Combined Encryption (Huffman + RSA + Caesar)" << endl;
-    cout << "2. Huffman + Caesar Encryption" << endl;
-    cout << "Enter your choice (1-2): ";
-}
-
-void displayDecryptionOptions() {
-    cout << "\n=== Decryption Options ===" << endl;
-    cout << "1. Combined Decryption (Caesar + RSA + Huffman)" << endl;
-    cout << "2. Caesar + Huffman Decryption" << endl;
-    cout << "Enter your choice (1-2): ";
-}
-
-int main() {
+int main()
+{
     string filename;
     int choice, subChoice;
-    
-    while (true) {
+
+    while (true)
+    {
         displayMenu();
         cin >> choice;
-        
-        switch (choice) {
-            case 1: // Encrypt
-                cout << "Enter filename to encrypt: ";
-                cin >> filename;
-                displayEncryptionOptions();
-                cin >> subChoice;
-                
-                switch (subChoice) {
-                    case 1:
-                        combinedEncryptFile(filename);
-                        break;
-                    case 2:
-                        huffmanCaesarEncryptFile(filename);
-                        break;
-                    default:
-                        cout << "Invalid choice!" << endl;
-                }
-                break;
-                
-            case 2: // Decrypt
-                displayDecryptionOptions();
-                cin >> subChoice;
-                
-                switch (subChoice) {
-                    case 1:
-                        combinedDecryptFile();
-                        break;
-                    case 2:
-                        huffmanCaesarDecryptFile();
-                        break;
-                    default:
-                        cout << "Invalid choice!" << endl;
-                }
-                break;
-                
-            case 3: // Exit
-                cout << "Exiting program..." << endl;
-                return 0;
-                
-            default:
-                cout << "Invalid choice! Please try again." << endl;
+
+        switch (choice)
+        {
+        case 1: // Encrypt
+            cout << "Enter filename to encrypt: ";
+            cin >> filename;
+            displayEncryptionOptions();
+            cin >> subChoice;
+            if (subChoice == 1) {
+                combinedEncryptFile(filename);
+            }
+            break;
+        case 2: // Decrypt
+            cout << "Decrypting encrypted file\n";
+            displayDecryptionOptions();
+            cin >> subChoice;
+            if (subChoice == 1) {
+                decryption_process();
+            }
+            break;
+        case 3: // Exit
+            cout << "Exiting program..." << endl;
+            return 0;
+        default:
+            cout << "Invalid choice. Please try again." << endl;
         }
     }
-    
+
     return 0;
 }

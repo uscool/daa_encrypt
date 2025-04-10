@@ -1,130 +1,284 @@
-#ifndef DECRYPTION_HPP
-#define DECRYPTION_HPP
+#ifndef DECRYPT_HPP
+#define DECRYPT_HPP
 
-#include <unordered_map>
 #include <string>
 #include <fstream>
-#include <iostream>
-#include <vector>
 #include <sstream>
+#include <unordered_map>
+#include "rsa.hpp"
+#include "huffman.hpp"
+#include "avl_tree.hpp"
 
 using namespace std;
 
-class Decryption {
+// Forward declaration of global RSA instance
+extern RSA globalRSA;
+
+class Decryptor {
 private:
-    unordered_map<string, string> huffmanToWord;
+    const int SHIFT = 4;  // Same shift as in encryption
+
+    // Reverse Caesar cipher for digits
+    string reverseCaesar(const string& text) {
+        cout << "\n=== Step 1: Reversing Caesar Cipher ===" << endl;
+        cout << "Input: " << text << endl;
+        
+        string result;
+        for (char c : text) {
+            if (isdigit(c)) {
+                int digit = c - '0';
+                digit = (digit - SHIFT + 10) % 10;  // Reverse the shift
+                result += to_string(digit);
+            } else {
+                result += c;
+            }
+        }
+        
+        cout << "Output: " << result << endl;
+        cout << "=====================================" << endl;
+        return result;
+    }
+
+    // Convert Huffman codes back to original tokens
+    string decodeHuffman(const string& encoded, const unordered_map<string, string>& huffmanCodes) {
+        cout << "\n=== Step 2: Decoding Huffman Codes ===" << endl;
+        cout << "Input: " << encoded << endl;
+        
+        // Create reverse mapping (code -> token)
+        unordered_map<string, string> reverseCodes;
+        for (const auto& pair : huffmanCodes) {
+            reverseCodes[pair.second] = pair.first;
+        }
+
+        string result;
+        string currentCode;
+        
+        for (char c : encoded) {
+            currentCode += c;
+            if (reverseCodes.find(currentCode) != reverseCodes.end()) {
+                result += reverseCodes[currentCode];
+                cout << "Decoded '" << currentCode << "' to '" << reverseCodes[currentCode] << "'" << endl;
+                currentCode.clear();
+            }
+        }
+        
+        cout << "Final Output: " << result << endl;
+        cout << "=====================================" << endl;
+        return result;
+    }
 
 public:
-    Decryption(const unordered_map<string, string>& huffmanCodes) {
-        for (const auto& pair : huffmanCodes) {
-            huffmanToWord[pair.second] = pair.first;
+    Decryptor() = default;
+
+    // Method to reverse Caesar cipher and save to file
+    void reverseCaesarToFile(const string& inputFile = "combined_encrypted.txt", 
+                           const string& outputFile = "reverse_caesar.txt") {
+        cout << "\n=== Reversing Caesar Cipher ===" << endl;
+        cout << "Reading from: " << inputFile << endl;
+        
+        // Read the encrypted file
+        ifstream encryptedFile(inputFile);
+        if (!encryptedFile.is_open()) {
+            throw runtime_error("Failed to open encrypted file: " + inputFile);
         }
+
+        string encryptedContent((istreambuf_iterator<char>(encryptedFile)),
+                              istreambuf_iterator<char>());
+        encryptedFile.close();
+
+        cout << "Original Content: " << encryptedContent << endl;
+
+        // Reverse the Caesar cipher
+        string reversedContent = reverseCaesar(encryptedContent);
+
+        // Write to output file
+        ofstream output(outputFile);
+        if (!output.is_open()) {
+            throw runtime_error("Failed to create output file: " + outputFile);
+        }
+
+        output << reversedContent;
+        output.close();
+
+        cout << "Caesar cipher reversed and saved to: " << outputFile << endl;
+        cout << "=====================================" << endl;
     }
 
-    string decode(const string& encodedText) {
-        string decodedText;
-        bool firstWord = true;
-        
-        // Split the encoded text by spaces to preserve word order
-        stringstream ss(encodedText);
-        string token;
-        
-        while (ss >> token) {
-            // Process each token (Huffman code) separately
-            if (huffmanToWord.find(token) != huffmanToWord.end()) {
-                if (!firstWord) {
-                    decodedText += " ";
-                }
-                decodedText += huffmanToWord[token];
-                firstWord = false;
-            } else {
-                // If the token is not found in the Huffman codes, try to split it
-                // This handles cases where spaces are missing between codes
-                string currentCode;
-                for (char bit : token) {
-                    currentCode += bit;
-                    if (huffmanToWord.find(currentCode) != huffmanToWord.end()) {
-                        if (!firstWord) {
-                            decodedText += " ";
-                        }
-                        decodedText += huffmanToWord[currentCode];
-                        firstWord = false;
-                        currentCode.clear();
-                    }
-                }
-                
-                // If there's a remaining code, try to match it
-                if (!currentCode.empty()) {
-                    // Try to find a matching code by adding bits from the next token
-                    string nextToken;
-                    if (ss >> nextToken) {
-                        for (char bit : nextToken) {
-                            currentCode += bit;
-                            if (huffmanToWord.find(currentCode) != huffmanToWord.end()) {
-                                if (!firstWord) {
-                                    decodedText += " ";
-                                }
-                                decodedText += huffmanToWord[currentCode];
-                                firstWord = false;
-                                currentCode.clear();
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
+    // Decrypt a file and return the decrypted content
+    string decryptFile(const string& filename) {
+        ifstream file(filename);
+        if (!file.is_open()) {
+            throw runtime_error("Failed to open file: " + filename);
         }
-        
-        return decodedText;
+
+        stringstream buffer;
+        buffer << file.rdbuf();
+        file.close();
+
+        return globalRSA.decryptString(buffer.str());
     }
 
-    void decryptFile(const string& encodedFile, const string& outputFile) {
-        ifstream inFile(encodedFile);
-        ofstream outFile(outputFile);
-        if (!inFile || !outFile) {
-            cerr << "Error opening files!" << endl;
-            return;
+    // Decrypt a string directly
+    string decryptString(const string& encrypted) {
+        return globalRSA.decryptString(encrypted);
+    }
+
+    // Get the private key for decryption
+    pair<long long, long long> getPrivateKey() const {
+        return globalRSA.getPrivateKey();
+    }
+
+    // Combined decryption process (Caesar + RSA + Huffman)
+    string combinedDecryptFile(const string& filename, const unordered_map<string, string>& huffmanCodes) {
+        cout << "\n=== Starting Decryption Process ===" << endl;
+        
+        // Step 1: Read the encrypted file
+        ifstream encryptedFile(filename);
+        if (!encryptedFile.is_open()) {
+            throw runtime_error("Failed to open encrypted file: " + filename);
         }
 
-        // Read all words into a vector to preserve order
-        vector<string> words;
+        string encryptedContent((istreambuf_iterator<char>(encryptedFile)),
+                              istreambuf_iterator<char>());
+        encryptedFile.close();
+
+        cout << "Original Encrypted Content: " << encryptedContent << endl;
+
+        // Step 2: Reverse Caesar cipher
+        string afterCaesar = reverseCaesar(encryptedContent);
+
+        // Step 3: Decode Huffman codes
+        string afterHuffman = decodeHuffman(afterCaesar, huffmanCodes);
+
+        // Step 4: Split into RSA-encrypted words and decrypt each
+        cout << "\n=== Step 3: RSA Decryption ===" << endl;
+        stringstream ss(afterHuffman);
         string word;
-        while (inFile >> word) {
-            words.push_back(word);
-        }
-        inFile.close();
+        string result;
+        bool firstWord = true;
 
-        // Process words, skipping salt values
-        string encodedText = "";
-        for (size_t i = 0; i < words.size(); i++) {
-            // Skip every 5th word (salt)
-            if ((i + 1) % 6 != 0) {
-                encodedText += words[i];
-                // Add space if not the last word and next word is not a salt word
-                if (i < words.size() - 1 && (i + 2) % 5 != 0) {
-                    encodedText += " ";
+        while (ss >> word) {
+            if (!firstWord) {
+                result += " ";
+            }
+            // Remove brackets if present
+            if (word.front() == '[') word = word.substr(1);
+            if (word.back() == ']') word.pop_back();
+            
+            string decryptedWord = globalRSA.decryptString(word);
+            cout << "Decrypted '" << word << "' to '" << decryptedWord << "'" << endl;
+            result += decryptedWord;
+            firstWord = false;
+        }
+
+        cout << "\nFinal Decrypted Text: " << result << endl;
+        cout << "=====================================" << endl;
+        return result;
+    }
+
+    // Method to decode Huffman codes and save to file
+    void decodeHuffmanToFile(const unordered_map<string, string>& huffmanCodes,
+                           const string& inputFile = "reverse_caesar.txt", 
+                           const string& outputFile = "reverse_huffman.txt") {
+        cout << "\n=== Decoding Huffman Codes ===" << endl;
+        
+        // Create and print reverse mapping (code -> token)
+        cout << "\n=== Huffman Codes Reverse Mapping ===" << endl;
+        unordered_map<string, string> reverseCodes;
+        for (const auto& pair : huffmanCodes) {
+            reverseCodes[pair.second] = pair.first;  // code -> token
+            cout << "Code: '" << pair.second << "' -> Token: '" << pair.first << "'" << endl;
+        }
+        cout << "===================================" << endl;
+        
+        cout << "Reading from: " << inputFile << endl;
+        
+        // Read the input file
+        ifstream input(inputFile);
+        if (!input.is_open()) {
+            throw runtime_error("Failed to open input file: " + inputFile);
+        }
+
+        // Write to output file
+        ofstream output(outputFile);
+        if (!output.is_open()) {
+            throw runtime_error("Failed to create output file: " + outputFile);
+        }
+
+        string word;
+        while (input >> word) {
+            // Look up the word in reverseCodes (word is a code)
+            if (reverseCodes.find(word) != reverseCodes.end()) {
+                output << "[" << reverseCodes[word] << "]";
+            } else {
+                output << "[" << word << "]";  // If no match found, keep original
+            }
+            output << " ";  // Add space between tokens
+        }
+
+        input.close();
+        output.close();
+
+        cout << "Huffman codes decoded and saved to: " << outputFile << endl;
+        cout << "=====================================" << endl;
+    }
+
+    // Method to reverse RSA encryption and save to file
+    void reverseRSAToFile(const string& inputFile = "reverse_huffman.txt", 
+                         const string& outputFile = "decrypted_output.txt") {
+        cout << "\n=== Reversing RSA Encryption ===" << endl;
+        cout << "Reading from: " << inputFile << endl;
+        
+        // Read the input file
+        ifstream input(inputFile);
+        if (!input.is_open()) {
+            throw runtime_error("Failed to open input file: " + inputFile);
+        }
+
+        // Write to output file
+        ofstream output(outputFile);
+        if (!output.is_open()) {
+            throw runtime_error("Failed to create output file: " + outputFile);
+        }
+
+        string content((istreambuf_iterator<char>(input)),
+                      istreambuf_iterator<char>());
+        input.close();
+
+        bool firstWord = true;
+        string currentEncrypted;
+        bool inBrackets = false;
+
+        for (char c : content) {
+            if (c == '[') {
+                inBrackets = true;
+                currentEncrypted.clear();
+            } else if (c == ']') {
+                inBrackets = false;
+                if (!currentEncrypted.empty()) {
+                    cout << "Processing encrypted content: " << currentEncrypted << endl;
+                    
+                    // Decrypt the entire content as a single word using global RSA
+                    string decryptedWord = globalRSA.decryptString(currentEncrypted);
+                    cout << "Decrypted to: " << decryptedWord << endl;
+                    
+                    // Add space between words (except before first word)
+                    if (!firstWord) {
+                        output << " ";
+                    }
+                    output << decryptedWord;
+                    firstWord = false;
                 }
+            } else if (inBrackets) {
+                currentEncrypted += c;
             }
         }
 
-        // Debug output
-        //cout << "Encoded text before decoding: " << encodedText << endl;
+        output.close();
 
-        // Print each word separately for debugging
-        //cout << "Words before decoding: ";
-        stringstream ss(encodedText);
-        string token;
-        while (ss >> token) {
-            cout << token << " ";
-        }
-        cout << endl;
-
-        // Process the content
-        string decodedText = decode(encodedText);
-        outFile << decodedText;
-        outFile.close();
-        cout << "Decryption completed. Output saved to " << outputFile << endl;
+        cout << "RSA encryption reversed and saved to: " << outputFile << endl;
+        cout << "=====================================" << endl;
     }
 };
 
-#endif
+#endif // DECRYPT_HPP 

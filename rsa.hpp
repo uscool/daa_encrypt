@@ -10,16 +10,19 @@
 #include <bitset>
 #include <iostream>
 
+using namespace std;
+
 class RSA {
 private:
     long long p, q, n, phi, e, d;
     const int KEY_SIZE = 16; // Using small key size for demonstration
+    bool keysGenerated = false;
 
     // Generate a random prime number
     long long generatePrime() {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<long long> dis(100, 1000);
+        random_device rd;
+        mt19937 gen(rd());
+        uniform_int_distribution<long long> dis(100, 1000);
         
         while (true) {
             long long num = dis(gen);
@@ -75,7 +78,7 @@ private:
     }
 
     // Convert binary string to long long
-    long long binaryToLong(const std::string& binary) {
+    long long binaryToLong(const string& binary) {
         long long result = 0;
         for (char bit : binary) {
             result = (result << 1) | (bit - '0');
@@ -84,8 +87,8 @@ private:
     }
 
     // Convert long long to binary string
-    std::string longToBinary(long long num, int bits) {
-        std::string result;
+    string longToBinary(long long num, int bits) {
+        string result;
         for (int i = bits - 1; i >= 0; --i) {
             result += ((num >> i) & 1) ? '1' : '0';
         }
@@ -94,28 +97,47 @@ private:
 
 public:
     RSA() {
-        // Generate two prime numbers
-        p = generatePrime();
-        q = generatePrime();
-        
-        // Calculate n and phi
+        // Don't generate keys in constructor
+    }
+
+    // Initialize or set keys
+    void initializeKeys() {
+        if (!keysGenerated) {
+            // Generate two prime numbers
+            p = generatePrime();
+            q = generatePrime();
+            
+            // Calculate n and phi
+            n = p * q;
+            phi = (p - 1) * (q - 1);
+            
+            // Choose e (public key)
+            e = 65537; // Common value for e
+            
+            // Calculate d (private key)
+            d = modInverse(e, phi);
+            keysGenerated = true;
+        }
+    }
+
+    // Set keys explicitly
+    void setKeys(long long newP, long long newQ, long long newE) {
+        p = newP;
+        q = newQ;
         n = p * q;
         phi = (p - 1) * (q - 1);
-        
-        // Choose e (public key)
-        e = 65537; // Common value for e
-        
-        // Calculate d (private key)
+        e = newE;
         d = modInverse(e, phi);
+        keysGenerated = true;
     }
 
     // Get public key
-    std::pair<long long, long long> getPublicKey() const {
+    pair<long long, long long> getPublicKey() const {
         return {e, n};
     }
 
     // Get private key
-    std::pair<long long, long long> getPrivateKey() const {
+    pair<long long, long long> getPrivateKey() const {
         return {d, n};
     }
 
@@ -129,79 +151,39 @@ public:
         return modPow(ciphertext, d, n);
     }
 
-    // Encrypt a string
-    std::string encryptString(const std::string& message) {
-        std::string result;
+    // Encrypt a string while preserving spaces
+    string encryptString(const string& message) {
+        string result;
+        bool firstChar = true;
+        
         for (char c : message) {
+            if (!firstChar) {
+                result += " ";
+            }
             long long m = static_cast<long long>(c);
             long long encrypted = encrypt(m);
-            result += std::to_string(encrypted) + " ";
+            result += to_string(encrypted);
+            firstChar = false;
         }
+        
         return result;
     }
 
-    // Decrypt a string
-    std::string decryptString(const std::string& encrypted) {
-        std::string result;
-        std::stringstream ss(encrypted);
-        std::string token;
+    // Decrypt a string while preserving spaces
+    string decryptString(const string& encrypted) {
+        string result;
+        stringstream ss(encrypted);
+        string token;
         
         while (ss >> token) {
-            long long num = std::stoll(token);
-            long long decrypted = decrypt(num);
-            result += static_cast<char>(decrypted);
-        }
-        return result;
-    }
-
-    // New method: Encrypt Huffman codes
-    std::string encryptHuffmanCodes(const std::string& huffmanCodes) {
-        // For Huffman codes, we'll use a simpler approach to preserve the codes
-        // We'll encrypt each character individually instead of the whole code
-        std::string result;
-        for (char c : huffmanCodes) {
-            if (c == ' ') {
-                result += ' ';
-            } else {
-                // Convert the character to a number (0 or 1)
-                long long tokenValue = (c == '1') ? 1 : 0;
-                
-                // Encrypt the token value
-                long long encrypted = encrypt(tokenValue);
-                
-                // Convert back to binary (0 or 1)
-                result += (encrypted % 2 == 1) ? '1' : '0';
-            }
-        }
-        
-        // Debug output
-        //std::cout << "RSA encrypted Huffman codes: " << result << std::endl;
-        
-        return result;
-    }
-
-    // New method: Decrypt Huffman codes
-    std::string decryptHuffmanCodes(const std::string& encrypted) {
-        // For Huffman codes, we'll use a simpler approach to preserve the codes
-        // We'll decrypt each character individually instead of the whole code
-        std::string result;
-        for (char c : encrypted) {
-            if (c == ' ') {
-                result += ' ';
-            } else {
-                // Convert the character to a number (0 or 1)
-                long long num = (c == '1') ? 1 : 0;
-                
-                // Decrypt the number
+            try {
+                long long num = stoll(token);
                 long long decrypted = decrypt(num);
-                
-                // Convert back to binary (0 or 1)
-                result += (decrypted % 2 == 1) ? '1' : '0';
+                result += static_cast<char>(decrypted);
+            } catch (const exception& e) {
+                cerr << "Error decrypting token: " << token << endl;
             }
         }
-        
-        // Debug output
-        //std::cout << "RSA decrypted Huffman codes: " << result << std::endl;
         
         return result;
     }
