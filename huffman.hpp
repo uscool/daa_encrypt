@@ -90,10 +90,6 @@ public:
             cout << pair.first << ": " << pair.second << endl;
         }
     }
-
-    void setCodes(const unordered_map<string, string>& codes) {
-        huffmanCodes = codes;
-    }
 };
 
 #endif
